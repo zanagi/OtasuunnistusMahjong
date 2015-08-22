@@ -18,5 +18,5 @@ function Sprite(spriteSheet, xCount, yCount, interval) {
 		ctx.drawImage(spriteSheet, currentFrame % xCount * frameWidth,
 				currentFrame / xCount * this.frameHeight, frameWidth,
 				frameHeight, x, y, frameWidth, frameHeight);
-	}
+	};
 }
