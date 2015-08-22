@@ -13,29 +13,21 @@
 	<link type="text/css" rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-	<canvas id="mahjongCanvas" width="800" height="600">
-		
-	</canvas>
+	<div id="content">
+		<canvas id="mahjongCanvas" width=800 height=600></canvas>
+	</div>
 	
 	<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
 	<script type="text/javascript" src="js/common.js"></script>
 	<script type="text/javascript" src="js/vector2.js"></script>
 	<script type="text/javascript" src="js/mahjong.js"></script>
 	<script>
-		$(window).ready(function(){
-			var tileManager = new TileManager(30, 20);
-			tileManager.createTiles();
-			tileManager.print();
+		//$(window).ready(function(){
+			var game = new MahjongGame();
 			
-			/* 
-			setTimeout(window.setTimeout(function(){
-				if(tileManager.allTilesLoaded()){
-					console.log("All tiles loaded!");
-				} else {
-					console.log("asdf");
-				}
-			}, 1000); */
-		});
+			game.loadContent();
+			game.start();
+		//});
 	</script>
 </body>
 </html>
