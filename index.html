@@ -1,11 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Otasuunnistus - Aalto Daigaku Maajanbu</title>
+	<meta charset="UTF-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="Otasuunnistus 2015 rastin prototyyppipeli, Otaniemi, Finland">
+	<meta name="keywords" 
+		content="Mahjong, College, Yliopisto, Otaniemi, Finland, Espoo, Aalto-yliopisto, Aalto, Association, Yhdistys, Otasuunnistus, Daigaku, Maajanbu">
+	<meta name="author" content="Yuanqi Shan">
+	<title>Otasuunnistus - Aalto Daigaku Maajanbu</title>
 </head>
 <body>
-	<canvas>
+	<canvas width="800" height="600">
+		
 	</canvas>
+	
+	<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+	<script type="text/javascript" src="js/common.js"></script>
+	<script type="text/javascript" src="js/vector2.js"></script>
+	<script type="text/javascript" src="js/mahjong.js"></script>
+	<script>
+		$(window).ready(function(){
+			var tileManager = new TileManager(30, 20);
+			tileManager.createTiles();
+			tileManager.print();
+			
+			/* 
+			setTimeout(window.setTimeout(function(){
+				if(tileManager.allTilesLoaded()){
+					console.log("All tiles loaded!");
+				} else {
+					console.log("asdf");
+				}
+			}, 1000); */
+		});
+	</script>
 </body>
 </html>
