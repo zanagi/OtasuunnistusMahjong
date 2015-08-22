@@ -8,7 +8,7 @@ function GameImage(filename, width, height) {
 	img.onload = function() {
 		loaded = true;
 	};
-	img.src = "../images/" + filename;
+	img.src = "../images/" + filename + ".png";
 	
 	/**
 	 * Draws the image
