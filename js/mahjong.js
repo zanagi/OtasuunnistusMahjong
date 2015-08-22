@@ -1,14 +1,14 @@
 /**
  * A custom image class
  */
-function GameImage(filename, width, height) {
+function GameImage(folderPath, filename, width, height) {
 	var loaded = false;
 	
 	var img = new Image();
 	img.onload = function() {
 		loaded = true;
 	};
-	img.src = "../images/" + filename + ".png";
+	img.src = folderPath + filename + ".png";
 	
 	/**
 	 * Draws the image
@@ -78,13 +78,14 @@ function TileManager(tileWidth, tileHeight) {
 	var center = new Vector2(diameter * xCount / 2.0, diameter * yCount / 2.0);
 	
 	this.createTiles = function() {
+		var tileFolderPath = "../images/tiles/";
 		var basicTileTypes = ["man", "pin", "sou"];
 		var honorTiles = ["east", "south", "west", "north", "hatsu", "chun", "haku"]
 		var positions = createPositionArray(xCount, yCount, diameter);
 		
 		for(var t = 0; t < basicTileTypes.length; t++){
 			for(var i = 1; i <= 9; i++){
-				var img = new GameImage(basicTileTypes[t] + "-" + i, tileWidth, tileHeight);
+				var img = new GameImage(tileFolderPath, basicTileTypes[t] + "-" + i, tileWidth, tileHeight);
 				
 				this.pushTiles(img, positions, 4);
 			}
