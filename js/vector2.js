@@ -89,6 +89,25 @@ function Vector2(sx, sy) {
 	};
 
 	/**
+	 * @param {Array} the array of Vector2 instances that the polygon consists of
+	 */
+	this.isInPolygon = function(polyArray) {
+		// TODO:
+		var xi, xj, yi, yj;
+		var inPolygon = false;
+		for(var i = 0, j = polyArray.length - 1; i < polyArray.length; j = i++) {
+			xi = polyArray[i].getX();
+			yi = polyArray[i].getY();
+			xj = polyArray[j].getX();
+			yj = polyArray[j].getY();
+			if((yi > y) != (yj > y) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+				inPolygon = !inPolygon;
+			}
+		}
+		return inPolygon;
+	};
+	
+	/**
 	 * @returns {Vector2} new Vector2 instance with the same values
 	 */
 	this.clone = function() {
