@@ -7,6 +7,7 @@ body {
 }
 
 #content {
+	position: relative;
 	width: 800px;
 	height: 600px;
 	left: 0;
@@ -15,5 +16,6 @@ body {
 }
 
 #mahjongCanvas {
+	position: relative;
 	border: 1px solid black;
 }
