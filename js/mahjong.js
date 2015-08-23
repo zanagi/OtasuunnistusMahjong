@@ -20,8 +20,8 @@ function GameImage(folderPath, filename, width, height) {
 		if(this.isLoaded()) {
 			var ctx = canvas.getContext("2d");
 			ctx.save();
-			ctx.translate(pos.getX(), pos.getY());
-			ctx.rotate(rotation * Math.PI / 180);
+			ctx.translate(pos.getX() + width / 2, pos.getY() + height / 2);
+			ctx.rotate(toRadians(rotation));
 			ctx.drawImage(img, -width / 2, -height / 2, width, height);	
 			ctx.restore();
 		}
@@ -73,7 +73,8 @@ function GameImage(folderPath, filename, width, height) {
 function Tile(img, pos) {
 	var rotation = 0.0;
 	var position = pos;
-	
+	var vertices = createVertices();
+		
 	/**
 	 * Draws the mahjong tile
 	 * @param canvas {Object} the canvas where the tile is drawn
@@ -97,11 +98,19 @@ function Tile(img, pos) {
 	};
 	
 	/**
-	 * Gives the tile a new position
+	 * @returns {Vector2} The position of this tile without rotation
+	 */
+	this.getPosition = function() {
+		return position;
+	}
+	
+	/**
+	 * Gives the tile a new position, without rotation
 	 * @param newPos {Vector2} the new position cector
 	 */
 	this.setPosition = function(newPos) {
 		position = newPos;
+		vertices = createVertices();
 	};
 	
 	/**
@@ -110,6 +119,7 @@ function Tile(img, pos) {
 	 */
 	this.setRotation = function(newRotation) {
 		rotation = newRotation;
+		vertices = createVertices();
 	};
 	
 	/**
@@ -119,6 +129,43 @@ function Tile(img, pos) {
 		console.log(img.getName() + ": " + position.toString());
 		console.log("Path: " + img.getFullPath());
 	};
+	
+	/**
+	 * Private function:
+	 * @returns {Array} The array of vertice vectors
+	 */
+	function createVertices() {
+		var r = toRadians(rotation);
+		var p = position.getX() + img.getWidth() / 2;
+		var q = position.getY() + img.getHeight() / 2;
+		var arr = [
+		           		new Vector2((position.getX() - p) * Math.cos(r) - (position.getY() - q) * Math.sin(r) + p,
+		           					(position.getX() - p) * Math.sin(r) + (position.getY() - q) * Math.cos(r) + q),
+       					new Vector2((position.getX() - p) * Math.cos(r) - (position.getY() - q) * Math.sin(r) + p,
+	           					(position.getX() - p) * Math.sin(r) + (position.getY() - q) * Math.cos(r) + q),
+		           ];
+		
+		for(var i = 0; i < 4; i++) {
+			var x, y;
+			
+			if(i == 0){
+				x = position.getX();
+				y = position.getY();
+			} else if(i == 1) {
+				x = position.getX() + img.getWidth();
+				y = position.getY();
+			} else if(i == 2) {
+				x = position.getX() + img.getWidth();
+				y = position.getY() + img.getHeight();
+			} else {
+				x = position.getX();
+				y = position.getY() + img.getHeight();
+			}
+			arr.push(new Vector2((x - p) * Math.cos(r) - (y - q) * Math.sin(r) + p,
+   								(x - p) * Math.sin(r) + (y - q) * Math.cos(r) + q));
+		}
+		return arr;
+	}
 }
 
 
@@ -226,7 +273,8 @@ function TileManager(tileWidth, tileHeight) {
 	 */
 	function rotateTiles() {
 		for(var i = 0; i < tiles.length; i++){
-			tiles[i].setRotation(Math.random() * 360);
+			var rotation = Math.random() * 360;
+			tiles[i].setRotation(rotation);
 		}
 	}
 	
@@ -235,7 +283,18 @@ function TileManager(tileWidth, tileHeight) {
 	 * Groups the mahjong tiles close to each other
 	 */
 	function groupTiles() {
-		// TODO: check rectangle intersection for the rotated tiles
+		var min = Math.min(xCount, yCount);
+		var max = Math.max(xCount, yCount);
+		var movedTiles = [];
+		
+		for(var counter = 0; counter < max + min - 1; counter++) {
+			// Array of tiles to be grouped on this iteration 
+			var tilesArr = tiles.filter(function(t){
+				return Math.abs(t.getPosition().getX() + t.getPosition().getY() - (2 + 2 * counter) * diameter) <= 1;
+			});
+			// TODO: Group tiles towards the lowest tile
+			console.log(tilesArr);
+		}
 	}
 	
 	/**
