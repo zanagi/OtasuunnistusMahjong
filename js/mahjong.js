@@ -28,6 +28,23 @@ function GameImage(folderPath, filename, width, height) {
 	};
 	
 	/**
+	 * Draws a rectangle in the same position the image would be drawn
+	 * @param canvas {Object} the canvas where the rectangle is drawn
+	 * @param pos {Vector2} the position vector where the rectangle should be drawn
+	 * @param rotation {Number} the rotation (angle) of the rectangle
+	 * @param colorString {String} the color (fill) string of the rectangle
+	 */
+	this.drawRect = function(canvas, pos, rotation, colorString) {
+		var ctx = canvas.getContext("2d");
+		ctx.save();
+		ctx.translate(pos.getX() + width / 2, pos.getY() + height / 2);
+		ctx.rotate(toRadians(rotation));
+		ctx.fillStyle = colorString;
+		ctx.fillRect(-width / 2, -height / 2, width, height);	
+		ctx.restore();
+	}
+	
+	/**
 	 * @returns {Boolean} true if the image has been loaded successfully, otherwise returns false
 	 */
 	this.isLoaded = function() {
@@ -74,13 +91,18 @@ function Tile(img, pos) {
 	var rotation = 0.0;
 	var position = pos;
 	var vertices = createVertices();
-		
+	var hovered = false;
+	
 	/**
 	 * Draws the mahjong tile
 	 * @param canvas {Object} the canvas where the tile is drawn
 	 */
 	this.draw = function(canvas) {
 		img.draw(canvas, position, rotation);
+		
+		if(hovered) {
+			img.drawRect(canvas, position, rotation, "rgba(200, 70, 70, 0.5)");
+		}
 	};
 
 	/**
@@ -121,6 +143,28 @@ function Tile(img, pos) {
 		rotation = newRotation;
 		vertices = createVertices();
 	};
+	
+	/**
+	 * @returns {Array} the array of vertice vectors
+	 */
+	this.getVerticeArray = function() {
+		return vertices;
+	};
+	
+	/**
+	 * @returns {Boolean} true, if this tile is being hovered (handled by TileManager), otherwise returns false
+	 */
+	this.getHovered = function() {
+		return hovered;
+	}
+	
+	/**
+	 * Sets hovered value
+	 * @param h {Boolean} new hovered value
+	 */
+	this.setHovered = function(h) {
+		hovered = h;
+	}
 	
 	/**
 	 * Debug function
@@ -225,6 +269,26 @@ function TileManager(tileWidth, tileHeight) {
 	}
 	
 	/**
+	 * Updates the tiles based on mouse input
+	 */
+	this.update = function(mousePos) {
+		var foundHovered = false;
+		for(var i = 0; i < tiles.length; i++) {
+			var tile = tiles[i];
+			if(foundHovered) {
+				tile.setHovered(false);
+			} else {
+				if(mousePos.isInPolygon(tile.getVerticeArray())) {
+					tile.setHovered(true);
+					foundHovered = true;
+				} else {
+					tile.setHovered(false);
+				}
+			}
+		}
+	};
+	
+	/**
 	 * Draws the tiles
 	 * @param canvas {Object} the canvas where the objects are drawn
 	 */
@@ -327,8 +391,8 @@ function TileManager(tileWidth, tileHeight) {
  * A ScreenManager manages all the screens that the game is separated into
  */
 function ScreenManager() {
-	var menuScreen = new MenuScreen();
-	var gameScreen = new GameScreen()
+	var menuScreen = new MenuScreen(this);
+	var gameScreen = new GameScreen(this)
 	var currentScreen = gameScreen;
 	
 	var map = [];	// Key input array
@@ -336,6 +400,8 @@ function ScreenManager() {
 	                    13, 32,				// Enter, Space
 	                    37, 38, 39, 40	 	// Left, Up, Right, Down
 	                    ];
+	
+	var mousePos = new Vector2(0, 0);
 	
 	/**
 	 * Loads the contents of the screens and sets up key events
@@ -347,7 +413,7 @@ function ScreenManager() {
 			map[e.keyCode] = e.type == 'keydown';
 
 			// Debug
-			console.log(e.keyCode);
+			//console.log(e.keyCode);
 			
 			// If the key is used by the game (defined in gameKeyCodes), prevent event bubbling
 			if(gameKeyCodes.indexOf(e.keyCode) > -1) {
@@ -382,7 +448,11 @@ function ScreenManager() {
 		currentScreen.draw(canvas);
 	}
 	
-	// The classes below should inherit a base class called Screen, but do not due to the lack of skills :P
+	this.setMousePos = function(pos) {
+		mousePos = pos;
+	}
+	
+	// The classes below should inherit a base class called Screen, but do not due to the lack of JS skills, 2 hard 4 mii :P
 	
 	/**
 	 * A MenuScreen contains the menu of the game
@@ -431,7 +501,7 @@ function ScreenManager() {
 		 * Updates the game logic
 		 */
 		this.update = function() {
-			
+			tileManager.update(mousePos);
 		};
 		
 		/**
@@ -466,6 +536,11 @@ function MahjongGame() {
 	this.loadContent = function() {
 		// Animation looper
 		window.requestAnimFrame = window.requestAnimationFrame || window.oRequestAnimationFrame;
+		
+		canvas.addEventListener('mousemove', function(e) {
+			var rect = canvas.getBoundingClientRect();
+		    screenManager.setMousePos(new Vector2(e.clientX - rect.left, e.clientY - rect.top));
+		}, false);
 		
 		screenManager.loadContent();
 		
