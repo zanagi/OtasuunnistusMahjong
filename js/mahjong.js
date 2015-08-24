@@ -515,6 +515,7 @@ function ScreenManager(canvas) {
 	                    37, 38, 39, 40	 	// Left, Up, Right, Down
 	                    ];
 	
+	var mouseCanvasPos = new Vector2(0, 0);
 	var mousePos = new Vector2(0, 0);
 	var camera = new Camera2D(canvas.width, canvas.height);
 	var ctx = canvas.getContext("2d");
@@ -541,8 +542,7 @@ function ScreenManager(canvas) {
 		// Mouse event
 		window.addEventListener('mousemove', function(e) {
 			var rect = canvas.getBoundingClientRect();
-			var tl = camera.getTranslation();
-		    setMousePos(new Vector2(e.clientX - rect.left + tl.getX(), e.clientY - rect.top + tl.getY()));
+			mouseCanvasPos = new Vector2(e.clientX - rect.left, e.clientY - rect.top)
 		}, false);
 		
 		menuScreen.loadContent();
@@ -581,10 +581,10 @@ function ScreenManager(canvas) {
 	/**
 	 * Private function:
 	 * Sets the mouse position
-	 * @param pos {Vector2} new mouse position
+	 * @param tl {Vector2} camera translation vector
 	 */
-	function setMousePos(pos) {
-		mousePos = pos;
+	function setMousePos(tl) {
+	    mousePos = mouseCanvasPos.add(tl);
 	}
 	
 	// The classes below should inherit a base class called Screen, but do not due to the lack of JS skills, 2 hard 4 mii :P
@@ -663,6 +663,7 @@ function ScreenManager(canvas) {
 			if(map[40]) {
 				camera.updateTranslation(new Vector2(0, speed), minPos, maxPos);
 			}
+			setMousePos(camera.getTranslation());
 		};
 		
 		/**
