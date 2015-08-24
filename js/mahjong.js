@@ -626,6 +626,9 @@ function ScreenManager(canvas) {
 		var tileWidth = 60;
 		var tileHeight = 90;
 		var tileManager = new TileManager(tileWidth, tileHeight);
+		var handZone, zonePos;
+		var zoneHeight = 100;
+		
 		var speed = 15;
 		var minPos, maxPos;
 		
@@ -642,6 +645,7 @@ function ScreenManager(canvas) {
 			maxPos = tileManager.getMaxPos();
 			
 			background = new GameImage("images/", "gameBg", tileManager.getMaxPos().getX(), tileManager.getMaxPos().getY());
+			handZone = new GameImage("images/", "handZone", canvas.width - 50, zoneHeight);
 		};
 		
 		/**
@@ -673,6 +677,9 @@ function ScreenManager(canvas) {
 		this.draw = function(canvas) {
 			background.draw(canvas, origin, 0);
 			tileManager.draw(canvas, camera);
+			
+			var zonePos = new Vector2(camera.getTranslation().getX() + 25, camera.getTranslation().getY());
+			handZone.draw(canvas, zonePos, 0);
 		}
 		
 		/**
