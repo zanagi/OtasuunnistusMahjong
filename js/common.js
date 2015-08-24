@@ -16,3 +16,7 @@ function shuffle(arr){
 function toRadians(angle) {
 	return angle * Math.PI / 180;
 }
+
+function randomArrayValue(array) {
+	return array[Math.floor(Math.random() * movedTiles.length)];
+}
