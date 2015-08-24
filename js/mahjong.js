@@ -92,6 +92,7 @@ function Tile(img, pos) {
 	var position = pos;
 	var vertices = createVertices();
 	var hovered = false;
+	var picked = false;
 	var center = new Vector2(position.getX() + img.getWidth() / 2, position.getY() + img.getHeight() / 2);
 	
 	/**
@@ -104,6 +105,9 @@ function Tile(img, pos) {
 			if(camera.containsPoint(vertices[i])){
 				img.draw(canvas, position, rotation);
 				
+				if(picked) {
+					img.drawRect(canvas, position, rotation, "rgba(50, 50, 50, 0.75)");
+				}
 				if(hovered) {
 					img.drawRect(canvas, position, rotation, "rgba(200, 70, 70, 0.5)");
 				}
@@ -172,6 +176,21 @@ function Tile(img, pos) {
 	 */
 	this.setHovered = function(h) {
 		hovered = h;
+	}
+	
+	/**
+	 * @returns {Boolean} true, if this tile has been picked, otherwise returns false
+	 */
+	this.getPicked = function() {
+		return picked;
+	}
+	
+	/**
+	 * Sets picked value
+	 * @param p {Boolean} new picked value
+	 */
+	this.setPicked = function(p) {
+		picked = p;
 	}
 	
 	/**
@@ -523,7 +542,7 @@ function ScreenManager(canvas) {
 		window.addEventListener('mousemove', function(e) {
 			var rect = canvas.getBoundingClientRect();
 			var tl = camera.getTranslation();
-		    mousePos = new Vector2(e.clientX - rect.left + tl.getX(), e.clientY - rect.top + tl.getY());
+		    setMousePos(new Vector2(e.clientX - rect.left + tl.getX(), e.clientY - rect.top + tl.getY()));
 		}, false);
 		
 		menuScreen.loadContent();
@@ -560,9 +579,11 @@ function ScreenManager(canvas) {
 	}
 	
 	/**
-	 * Obsolete
+	 * Private function:
+	 * Sets the mouse position
+	 * @param pos {Vector2} new mouse position
 	 */
-	this.setMousePos = function(pos) {
+	function setMousePos(pos) {
 		mousePos = pos;
 	}
 	
@@ -608,6 +629,9 @@ function ScreenManager(canvas) {
 		var speed = 15;
 		var minPos, maxPos;
 		
+		var background; 
+		var origin = new Vector2(0, 0);
+		
 		/**
 		 * Loads the content
 		 */
@@ -616,6 +640,8 @@ function ScreenManager(canvas) {
 			tileManager.createTiles();
 			minPos = new Vector2(0, 0);
 			maxPos = tileManager.getMaxPos();
+			
+			background = new GameImage("images/", "gameBg", tileManager.getMaxPos().getX(), tileManager.getMaxPos().getY());
 		};
 		
 		/**
@@ -644,6 +670,7 @@ function ScreenManager(canvas) {
 		 * @param canvas {Object} the canvas where the objects are drawn
 		 */
 		this.draw = function(canvas) {
+			background.draw(canvas, origin, 0);
 			tileManager.draw(canvas, camera);
 		}
 		
