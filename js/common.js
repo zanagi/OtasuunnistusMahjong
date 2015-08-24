@@ -23,5 +23,5 @@ function toRadians(angle) {
  * @returns a random value from the array
  */
 function randomArrayValue(array) {
-	return array[Math.floor(Math.random() * movedTiles.length)];
+	return array[Math.floor(Math.random() * array.length)];
 }

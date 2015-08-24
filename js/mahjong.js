@@ -92,6 +92,7 @@ function Tile(img, pos) {
 	var position = pos;
 	var vertices = createVertices();
 	var hovered = false;
+	var center = new Vector2(position.getX() + img.getWidth() / 2, position.getY() + img.getHeight() / 2);
 	
 	/**
 	 * Draws the mahjong tile
@@ -139,6 +140,7 @@ function Tile(img, pos) {
 	this.setPosition = function(newPos) {
 		position = newPos;
 		vertices = createVertices();
+		updateCenter();
 	};
 	
 	/**
@@ -188,12 +190,7 @@ function Tile(img, pos) {
 		var r = toRadians(rotation);
 		var p = position.getX() + img.getWidth() / 2;
 		var q = position.getY() + img.getHeight() / 2;
-		var arr = [
-		           		new Vector2((position.getX() - p) * Math.cos(r) - (position.getY() - q) * Math.sin(r) + p,
-		           					(position.getX() - p) * Math.sin(r) + (position.getY() - q) * Math.cos(r) + q),
-       					new Vector2((position.getX() - p) * Math.cos(r) - (position.getY() - q) * Math.sin(r) + p,
-	           					(position.getX() - p) * Math.sin(r) + (position.getY() - q) * Math.cos(r) + q),
-		           ];
+		var arr = [];
 		
 		for(var i = 0; i < 4; i++) {
 			var x, y;
@@ -215,6 +212,46 @@ function Tile(img, pos) {
    								(x - p) * Math.sin(r) + (y - q) * Math.cos(r) + q));
 		}
 		return arr;
+	}
+	
+	/**
+	 * temp
+	 */
+	this.distanceToTile = function(target) {
+		var targetVertices = target.getVerticeArray();
+		var distance = Number.MAX_VALUE;
+		
+		for(var i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+			for(var x = 0; x < targetVertices.length; x++) {
+				var vertice = targetVertices[x];
+				
+				var d = vertice.closestDistanceToLine(vertices[i], vertices[j]);
+				
+				if(d < distance) {
+					distance = d;
+				}
+			}
+		}
+		for(var i = 0, j = targetVertices.length - 1; i < targetVertices.length; j = i++) {
+			for(var x = 0; x < vertices.length; x++) {
+				var vertice = vertices[x];
+				
+				var d = vertice.closestDistanceToLine(targetVertices[i], targetVertices[j]);
+				
+				if(d < distance) {
+					distance = d;
+				}
+			}
+		}
+		return distance;
+	}
+	
+	this.getCenter = function() {
+		return center;
+	}
+	
+	function updateCenter() {
+		center = new Vector2(position.getX() + img.getWidth() / 2, position.getY() + img.getHeight() / 2);
 	}
 }
 
@@ -280,7 +317,7 @@ function TileManager(tileWidth, tileHeight) {
 	this.update = function(mousePos) {
 		var foundHovered = false;
 		for(var i = 0; i < tiles.length; i++) {
-			var tile = tiles[i];
+			var tile = tiles[tiles.length - 1 - i];
 			if(foundHovered) {
 				tile.setHovered(false);
 			} else {
@@ -389,10 +426,33 @@ function TileManager(tileWidth, tileHeight) {
 		for(var counter = 0; counter < max + min - 1; counter++) {
 			// Array of tiles to be grouped on this iteration 
 			var tilesArr = tiles.filter(function(t){
-				return Math.abs(t.getPosition().getX() + t.getPosition().getY() - (2 + 2 * counter) * diameter) <= 1;
+				return Math.abs(t.getPosition().getX() + t.getPosition().getY() - (2 + counter) * diameter) <= 1;
 			});
-			// TODO: Group tiles towards the lowest tile
-			console.log(tilesArr);
+			
+			for (var i = 0; i < tilesArr.length; i++) {
+				var tile = tilesArr[i];
+				
+				if(counter === 0) {
+					movedTiles.push(tile);
+				} else {
+					// var target = randomArrayValue(movedTiles);
+					var target = movedTiles[movedTiles.length - 1];
+					var d = tile.distanceToTile(target);
+					
+					for(var j = 1; j < movedTiles.length; j++) {
+						var nd = tile.distanceToTile(movedTiles[j]);
+						
+						if(nd < d) {
+							d = nd;
+							target = movedTiles[j];
+						}
+					}
+					
+					var newPosition = tile.getPosition().add(target.getCenter().subtract(tile.getCenter()).normalize().multiply(d));
+					tile.setPosition(newPosition);
+					movedTiles.push(tile);
+				}
+			}
 		}
 	}
 	
@@ -405,7 +465,7 @@ function TileManager(tileWidth, tileHeight) {
 		
 		for(var y = 0; y < yCount; y++){
 			for(var x = 0; x < xCount; x++){
-				array.push(new Vector2(diameter + x * diameter * 2, diameter + y * diameter * 2))
+				array.push(new Vector2(diameter + x * diameter, diameter + y * diameter))
 			}
 		}
 		return shuffle(array);
@@ -458,6 +518,14 @@ function ScreenManager(canvas) {
 			}
 		};
 		
+		var ref
+		// Mouse event
+		window.addEventListener('mousemove', function(e) {
+			var rect = canvas.getBoundingClientRect();
+			var tl = camera.getTranslation();
+		    mousePos = new Vector2(e.clientX - rect.left + tl.getX(), e.clientY - rect.top + tl.getY());
+		}, false);
+		
 		menuScreen.loadContent();
 		gameScreen.loadContent();
 	}
@@ -491,6 +559,9 @@ function ScreenManager(canvas) {
 		ctx.translate(tl.getX(), tl.getY());
 	}
 	
+	/**
+	 * Obsolete
+	 */
 	this.setMousePos = function(pos) {
 		mousePos = pos;
 	}
@@ -600,11 +671,6 @@ function MahjongGame() {
 	this.loadContent = function() {
 		// Animation looper
 		window.requestAnimFrame = window.requestAnimationFrame || window.oRequestAnimationFrame;
-		
-		canvas.addEventListener('mousemove', function(e) {
-			var rect = canvas.getBoundingClientRect();
-		    screenManager.setMousePos(new Vector2(e.clientX - rect.left, e.clientY - rect.top));
-		}, false);
 		
 		screenManager.loadContent();
 		
