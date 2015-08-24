@@ -20,7 +20,7 @@ function Vector2(sx, sy) {
 	 * @returns {Vector2} the new vector with the values of this vector added by the values of given vector
 	 */
 	this.add = function(that){
-		return new Vector2(x + that.x, y + that.y);
+		return new Vector2(x + that.getX(), y + that.getY());
 	};
 
 	/**
@@ -28,7 +28,7 @@ function Vector2(sx, sy) {
 	 * @returns {Vector2} the new vector with the values of this vector subtracted by the values of given vector
 	 */
 	this.subtract = function(that){
-		return new Vector2(x - that.x, y - that.y);
+		return new Vector2(x - that.getX(), y - that.getY());
 	};
 
 	/**
@@ -44,7 +44,7 @@ function Vector2(sx, sy) {
 	 * @returns {Number} The dot product of this vector and the given vector
 	 */
 	this.dotproduct = function(that){
-		return x * that.x + y * that.y;
+		return x * that.getX() + y * that.getY();
 	};
 
 	/**
@@ -74,7 +74,7 @@ function Vector2(sx, sy) {
 	 * @returns {Number} The distance between this vector (as point) and the given vector
 	 */
 	this.distance = function(that) {
-		return Math.sqrt((x - that.x) * (x - that.x) + (y - that.y) * (y - that.y));
+		return Math.sqrt((x - that.getX()) * (x - that.getX()) + (y - that.getY()) * (y - that.getY()));
 	};
 
 	/**
@@ -106,6 +106,15 @@ function Vector2(sx, sy) {
 		}
 		return inPolygon;
 	};
+	
+	/**
+	 * @param {Vector2} start point of the line
+	 * @param {Vector2} end point of the line
+	 * @returns {Vector2} the closest point from this point to the given line (on the line)
+	 */
+	this.closestPointToLine = function(p0, p1) {
+		
+	}
 	
 	/**
 	 * @returns {Vector2} new Vector2 instance with the same values
