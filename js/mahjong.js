@@ -97,11 +97,17 @@ function Tile(img, pos) {
 	 * Draws the mahjong tile
 	 * @param canvas {Object} the canvas where the tile is drawn
 	 */
-	this.draw = function(canvas) {
-		img.draw(canvas, position, rotation);
-		
-		if(hovered) {
-			img.drawRect(canvas, position, rotation, "rgba(200, 70, 70, 0.5)");
+	this.draw = function(canvas, camera) {
+		for (var i = 0; i < vertices.length; i++){
+			// Only draw the object if it's inside viewport
+			if(camera.containsPoint(vertices[i])){
+				img.draw(canvas, position, rotation);
+				
+				if(hovered) {
+					img.drawRect(canvas, position, rotation, "rgba(200, 70, 70, 0.5)");
+				}
+				return;
+			}
 		}
 	};
 
@@ -292,11 +298,40 @@ function TileManager(tileWidth, tileHeight) {
 	 * Draws the tiles
 	 * @param canvas {Object} the canvas where the objects are drawn
 	 */
-	this.draw = function(canvas) {
+	this.draw = function(canvas, camera) {
 		for(var i = 0; i < tiles.length; i++) {
-			tiles[i].draw(canvas);
+			tiles[i].draw(canvas, camera);
 		}
 	};
+	
+	
+	/**
+	 * @returns {Vector2} the maximum position that the camera should go to
+	 */
+	this.getMaxPos = function() {
+		var maxX = 0;
+		var maxY = 0;
+		
+		for(var i = 0; i < tiles.length; i++) {
+			var vertices = tiles[i].getVerticeArray();
+			
+			for(var j = 0; j < vertices.length; j++) {
+				var pos = vertices[j];
+				
+				if(pos.getX() > maxX) {
+					maxX = pos.getX();
+				}
+				if(pos.getY() > maxY) {
+					maxY = pos.getY();
+				}
+			}
+		}
+		
+		// add (+100,+100) for some spacing
+		var maxPos = new Vector2(maxX + diameter, maxY + diameter);
+		return maxPos;
+	};
+	
 	
 	/**
 	 * Private function:
@@ -390,7 +425,7 @@ function TileManager(tileWidth, tileHeight) {
 /**
  * A ScreenManager manages all the screens that the game is separated into
  */
-function ScreenManager() {
+function ScreenManager(canvas) {
 	var menuScreen = new MenuScreen(this);
 	var gameScreen = new GameScreen(this)
 	var currentScreen = gameScreen;
@@ -402,6 +437,8 @@ function ScreenManager() {
 	                    ];
 	
 	var mousePos = new Vector2(0, 0);
+	var camera = new Camera2D(canvas.width, canvas.height);
+	var ctx = canvas.getContext("2d");
 	
 	/**
 	 * Loads the contents of the screens and sets up key events
@@ -430,6 +467,7 @@ function ScreenManager() {
 	 * @param screen {*Screen} the new screen
 	 */
 	this.switchScreen = function(screen) {
+		camera.reset();
 		currentScreen = screen;
 	};
 	
@@ -444,8 +482,13 @@ function ScreenManager() {
 	 * Draws the current screen
 	 * @param canvas {Object} the canvas there the objects are drawn
 	 */
-	this.draw = function(canvas) {
+	this.draw = function() {
+		var tl = camera.getTranslation();
+		
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		ctx.translate(-tl.getX(), -tl.getY());
 		currentScreen.draw(canvas);
+		ctx.translate(tl.getX(), tl.getY());
 	}
 	
 	this.setMousePos = function(pos) {
@@ -458,6 +501,9 @@ function ScreenManager() {
 	 * A MenuScreen contains the menu of the game
 	 */
 	function MenuScreen(manager) {
+		
+		var minPos = new Vector2(0, 0);
+		var maxPos = new Vector2(0, 0);
 		
 		/**
 		 * Loads the content
@@ -488,6 +534,8 @@ function ScreenManager() {
 		var tileWidth = 60;
 		var tileHeight = 90;
 		var tileManager = new TileManager(tileWidth, tileHeight);
+		var speed = 15;
+		var minPos, maxPos;
 		
 		/**
 		 * Loads the content
@@ -495,6 +543,8 @@ function ScreenManager() {
 		this.loadContent = function() {
 			// Loading tile content
 			tileManager.createTiles();
+			minPos = new Vector2(0, 0);
+			maxPos = tileManager.getMaxPos();
 		};
 		
 		/**
@@ -502,6 +552,20 @@ function ScreenManager() {
 		 */
 		this.update = function() {
 			tileManager.update(mousePos);
+			
+			// Check key input
+			if(map[37]) {
+				camera.updateTranslation(new Vector2(-speed, 0), minPos, maxPos);
+			}
+			if(map[38]) {
+				camera.updateTranslation(new Vector2(0, -speed), minPos, maxPos);
+			}
+			if(map[39]) {
+				camera.updateTranslation(new Vector2(speed, 0), minPos, maxPos);
+			}
+			if(map[40]) {
+				camera.updateTranslation(new Vector2(0, speed), minPos, maxPos);
+			}
 		};
 		
 		/**
@@ -509,7 +573,7 @@ function ScreenManager() {
 		 * @param canvas {Object} the canvas where the objects are drawn
 		 */
 		this.draw = function(canvas) {
-			tileManager.draw(canvas);
+			tileManager.draw(canvas, camera);
 		}
 		
 		/**
@@ -517,7 +581,7 @@ function ScreenManager() {
 		 * Modifies the screen to a new initial state
 		 */
 		function reset() {
-			
+			camera.reset();
 		}
 	}
 }
@@ -528,7 +592,7 @@ function ScreenManager() {
  */
 function MahjongGame() {
 	var canvas = document.getElementById("mahjongCanvas");
-	var screenManager = new ScreenManager();
+	var screenManager = new ScreenManager(canvas);
 	
 	/**
 	 * Loads the content
@@ -560,14 +624,11 @@ function MahjongGame() {
 	 * Starts the update/animation loop
 	 */
 	function animate() {
-		// Clear canvas
-		var ctx = canvas.getContext("2d");
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		
 		// Request new 
 		window.requestAnimFrame(animate);
-		
+	
+		// Update and draw
 		screenManager.update();
-		screenManager.draw(canvas);
+		screenManager.draw();
 	}
 }

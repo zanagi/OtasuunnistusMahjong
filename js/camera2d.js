@@ -1,29 +1,42 @@
-function Camera2D(canvas) {
+function Camera2D(width, height) {
 	var tl = new Vector2(0, 0); // Translation vector (the top-left position of the camera)
-	var ctx = canvas.getContext("2d");
-	
+
 	/**
 	 * Updates the translation vector
 	 */
 	this.updateTranslation = function(diff, min, max) {
-		var x = Math.min(Math.max(tl.getX() + diff.getX(), min.getX()), max.getX());
-		var y = Math.min(Math.max(tl.getY() + diff.getY(), min.getY()), max.getY());
+		var x = Math.min(Math.max(tl.getX() + diff.getX(), min.getX()), max.getX() - width);
+		var y = Math.min(Math.max(tl.getY() + diff.getY(), min.getY()), max.getY() - height);
 		tl = new Vector2(x, y);
-	}
+	};
 	
 	/**
-	 * Applies the translation to canvas
-	 * @param ctx {Object} The context of the canvas
+	 * @returns {Vector2} the translation vector
 	 */
-	this.apply = function() {
-		ctx.translate(-tl.getX(), -tl.getY());
+	this.getTranslation = function() {
+		return tl;
 	}
 	
 	/**
-	 * Undoes the translation to canvas
-	 * @param ctx {Object} The context of the canvas
+	 * Resets the translation
 	 */
 	this.reset = function() {
-		ctx.translate(tl.getX(), tl.getY());
+		tl = new Vector2(0, 0);
+	};
+	
+	/**
+	 * @param point {Vector2}
+	 * @return {Boolean} true if point (position vector) is inside viewport, otherwise returns false
+	 */
+	this.containsPoint = function(point) {
+		return (point.getX() >= tl.getX() && point.getX() <= tl.getX() + width
+				&& point.getY() >= tl.getY() && point.getY() <= tl.getY() + height);
 	}
+	
+	/**
+	 * Debug function
+	 */
+	this.print = function() {
+		console.log("Translation: " + tl.toString());
+	};
 }
