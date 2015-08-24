@@ -17,6 +17,11 @@ function toRadians(angle) {
 	return angle * Math.PI / 180;
 }
 
+/**
+ * 
+ * @param array {Array}
+ * @returns a random value from the array
+ */
 function randomArrayValue(array) {
 	return array[Math.floor(Math.random() * movedTiles.length)];
 }
