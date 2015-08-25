@@ -108,7 +108,7 @@ function Tile(img, pos) {
 				if(picked) {
 					img.drawRect(canvas, position, rotation, "rgba(50, 50, 50, 0.75)");
 				}
-				if(hovered) {
+				else if(hovered) {
 					img.drawRect(canvas, position, rotation, "rgba(200, 70, 70, 0.5)");
 				}
 				return;
@@ -116,6 +116,13 @@ function Tile(img, pos) {
 		}
 	};
 
+	this.drawZoneTile = function(canvas, zonePos, hoveredOnZone) {
+		img.draw(canvas, zonePos, 0);
+		if(hoveredOnZone) {
+			img.drawRect(canvas, zonePos, 0, "rgba(200, 70, 70, 0.5)");
+		}
+	}
+	
 	/**
 	 * @returns {Boolean} true if image has been loaded, otherwise returns false
 	 */
@@ -157,6 +164,7 @@ function Tile(img, pos) {
 	};
 	
 	/**
+	 * @param withoutRotation {Boolean} calculate vertices without rotation
 	 * @returns {Array} the array of vertice vectors
 	 */
 	this.getVerticeArray = function() {
@@ -389,6 +397,12 @@ function TileManager(tileWidth, tileHeight) {
 	};
 	
 	
+	this.findHovered = function() {
+		return tiles.find(function(t) {
+			return t.getHovered();
+		});
+	}
+	
 	/**
 	 * Private function:
 	 * Creates new tiles equal to the given amount and gives them a position from the given position array
@@ -515,6 +529,7 @@ function ScreenManager(canvas) {
 	                    37, 38, 39, 40	 	// Left, Up, Right, Down
 	                    ];
 	
+	var click = false;
 	var mouseCanvasPos = new Vector2(0, 0);
 	var mousePos = new Vector2(0, 0);
 	var camera = new Camera2D(canvas.width, canvas.height);
@@ -524,6 +539,13 @@ function ScreenManager(canvas) {
 	 * Loads the contents of the screens and sets up key events
 	 */
 	this.loadContent = function() {
+		defineEvents();
+		
+		menuScreen.loadContent();
+		gameScreen.loadContent();
+	}
+	
+	function defineEvents() {
 		// Key events
 		onkeydown = onkeyup = function(e) {
 			e = e || event;
@@ -537,16 +559,16 @@ function ScreenManager(canvas) {
 				e.preventDefault();
 			}
 		};
-		
-		var ref
+
 		// Mouse event
 		window.addEventListener('mousemove', function(e) {
 			var rect = canvas.getBoundingClientRect();
 			mouseCanvasPos = new Vector2(e.clientX - rect.left, e.clientY - rect.top)
 		}, false);
 		
-		menuScreen.loadContent();
-		gameScreen.loadContent();
+		canvas.onclick = function() {
+			click = true;
+		};
 	}
 	
 	/**
@@ -563,6 +585,7 @@ function ScreenManager(canvas) {
 	 */
 	this.update = function() {
 		currentScreen.update();
+		click = false;
 	}
 	
 	/**
@@ -626,8 +649,7 @@ function ScreenManager(canvas) {
 		var tileWidth = 60;
 		var tileHeight = 90;
 		var tileManager = new TileManager(tileWidth, tileHeight);
-		var handZone, zonePos;
-		var zoneHeight = 100;
+		var handZone = new HandZone(canvas.width - 50, 100, 25, tileWidth, tileHeight);
 		
 		var speed = 15;
 		var minPos, maxPos;
@@ -645,7 +667,8 @@ function ScreenManager(canvas) {
 			maxPos = tileManager.getMaxPos();
 			
 			background = new GameImage("images/", "gameBg", tileManager.getMaxPos().getX(), tileManager.getMaxPos().getY());
-			handZone = new GameImage("images/", "handZone", canvas.width - 50, zoneHeight);
+			
+			handZone.loadContent();
 		};
 		
 		/**
@@ -668,6 +691,21 @@ function ScreenManager(canvas) {
 				camera.updateTranslation(new Vector2(0, speed), minPos, maxPos);
 			}
 			setMousePos(camera.getTranslation());
+			
+			// Handzone (check clicked tiles)
+			if(click) {
+				var hovered = tileManager.findHovered();
+				
+				if(hovered) {
+					if(!hovered.getPicked()) {
+						handZone.pushTile(hovered);
+					}
+				}
+			}
+			
+			var zonePos = new Vector2(camera.getTranslation().getX() + handZone.getMargin(),
+					camera.getTranslation().getY() + canvas.height - handZone.getHeight());
+			handZone.update(mousePos, click, zonePos);
 		};
 		
 		/**
@@ -675,11 +713,14 @@ function ScreenManager(canvas) {
 		 * @param canvas {Object} the canvas where the objects are drawn
 		 */
 		this.draw = function(canvas) {
+			// Draw the background
 			background.draw(canvas, origin, 0);
+			
+			// Draw tiles
 			tileManager.draw(canvas, camera);
 			
-			var zonePos = new Vector2(camera.getTranslation().getX() + 25, camera.getTranslation().getY());
-			handZone.draw(canvas, zonePos, 0);
+			// Draw hand zone
+			handZone.draw(canvas, mousePos);
 		}
 		
 		/**
@@ -692,6 +733,80 @@ function ScreenManager(canvas) {
 	}
 }
 
+
+function HandZone(zoneWidth, zoneHeight, margin, tileWidth, tileHeight) {
+	var img;
+	var tiles = [];
+	var handSize = 14;
+	var pos;
+	
+	this.loadContent = function() {
+		img = new GameImage("images/", "handZone", zoneWidth, zoneHeight);
+	};
+	
+	this.getHeight = function() {
+		return zoneHeight;
+	};
+	
+	this.getWidth = function() {
+		return zoneWidth;
+	};
+	
+	this.getMargin = function() {
+		return margin;
+	};
+	
+	this.pushTile = function(tile) {
+		if(tiles.length < handSize) {
+			tile.setPicked(true);
+			tiles.push(tile);
+		} else {
+			// TODO: error message (effects)
+		}
+	};
+	
+	this.update = function(mousePos, click, zonePos) {
+		pos = zonePos;
+		
+		for(var i = 0; i < tiles.length; i++) {
+			// Clicked -> remove
+			if(click){
+				if(isTileHovered(i, mousePos)) {
+					tiles[i].setPicked(false);
+					tiles.splice(i, 1);
+					break;
+				}
+			}
+		}
+	};
+	
+	this.draw = function(canvas, mousePos) {
+		img.draw(canvas, pos, 0);
+		
+		var hasHovered = false;
+		
+		for(var i = 0; i < tiles.length; i++) {
+			var h = false;
+			
+			if(!hasHovered) {
+				h = isTileHovered(i, mousePos);
+				hasHovered = h;
+			}
+			tiles[i].drawZoneTile(canvas, getTilePosition(i), h);
+		}
+	};
+	
+	function getTilePosition(index) {
+		return pos.add(new Vector2(10 + index * (tileWidth + 10), (zoneHeight - tileHeight) / 2));
+	}
+	
+	function isTileHovered(index, mousePos) {
+		var tilePos = getTilePosition(index);
+		
+		return mousePos.getX() >= tilePos.getX() && mousePos.getX() <= tilePos.getX() + tileWidth
+				&& mousePos.getY() >= tilePos.getY() && mousePos.getY() <= tilePos.getY() + tileHeight;
+	}
+}
 
 /**
  * The mother of all creation, the game instance
