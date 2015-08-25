@@ -739,6 +739,8 @@ function HandZone(zoneWidth, zoneHeight, margin, tileWidth, tileHeight) {
 	var tiles = [];
 	var handSize = 14;
 	var pos;
+	var tileSpace = 10;
+	var tileMargin = (zoneWidth - handSize * (tileWidth + tileSpace)) / 2;
 	
 	this.loadContent = function() {
 		img = new GameImage("images/", "handZone", zoneWidth, zoneHeight);
@@ -797,7 +799,7 @@ function HandZone(zoneWidth, zoneHeight, margin, tileWidth, tileHeight) {
 	};
 	
 	function getTilePosition(index) {
-		return pos.add(new Vector2(10 + index * (tileWidth + 10), (zoneHeight - tileHeight) / 2));
+		return pos.add(new Vector2(tileMargin + index * (tileWidth + tileSpace), (zoneHeight - tileHeight) / 2));
 	}
 	
 	function isTileHovered(index, mousePos) {
