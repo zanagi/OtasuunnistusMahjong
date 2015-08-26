@@ -10,7 +10,7 @@ function shuffle(arr){
 
 /**
  * Converts angle from degrees to radians
- * @param angle {Number}
+ * @param angle {Number} degrees
  * @returns {Number} angle in radians
  */
 function toRadians(angle) {

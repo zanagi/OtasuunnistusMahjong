@@ -1,14 +1,15 @@
 /**
  * A custom image class
+ * Logic error: this class should have a position variable that can be changed through functions
  */
-function GameImage(folderPath, filename, width, height) {
+function GameImage(path, width, height) {
 	var loaded = false;
 	
 	var img = new Image();
 	img.onload = function() {
 		loaded = true;
 	};
-	img.src = folderPath + filename + ".png";
+	img.src = path;
 	
 	/**
 	 * Draws the image
@@ -307,7 +308,7 @@ function TileManager(tileWidth, tileHeight) {
 		// Add basic tiles man/pin/sou 1-9 
 		for(var t = 0; t < basicTileTypes.length; t++){
 			for(var i = 1; i <= 9; i++){
-				var img = new GameImage(tileFolderPath, basicTileTypes[t] + "-" + i, tileWidth, tileHeight);
+				var img = new GameImage(tileFolderPath + basicTileTypes[t] + "-" + i + ".png", tileWidth, tileHeight);
 				
 				pushTiles(img, positions, 4);
 			}
@@ -315,7 +316,7 @@ function TileManager(tileWidth, tileHeight) {
 		
 		// Add honor tiles
 		for(var t = 0; t < honorTiles.length; t++){
-			var img = new GameImage(tileFolderPath, honorTiles[t], tileWidth, tileHeight);
+			var img = new GameImage(tileFolderPath + honorTiles[t] + ".png", tileWidth, tileHeight);
 			
 			pushTiles(img, positions, 4);
 		}
@@ -519,9 +520,9 @@ function TileManager(tileWidth, tileHeight) {
  * A ScreenManager manages all the screens that the game is separated into
  */
 function ScreenManager(canvas) {
-	var menuScreen = new MenuScreen(this);
+	var cardScreen = new CardScreen(this);
 	var gameScreen = new GameScreen(this)
-	var currentScreen = gameScreen;
+	var currentScreen = cardScreen;
 	
 	var map = [];	// Key input array
 	var gameKeyCodes = [
@@ -541,7 +542,7 @@ function ScreenManager(canvas) {
 	this.loadContent = function() {
 		defineEvents();
 		
-		menuScreen.loadContent();
+		cardScreen.loadContent();
 		gameScreen.loadContent();
 	}
 	
@@ -577,6 +578,7 @@ function ScreenManager(canvas) {
 	 */
 	this.switchScreen = function(screen) {
 		camera.reset();
+		screen.loadContent();
 		currentScreen = screen;
 	};
 	
@@ -615,37 +617,75 @@ function ScreenManager(canvas) {
 	/**
 	 * A MenuScreen contains the menu of the game
 	 */
-	function MenuScreen(manager) {
-		
-		var minPos = new Vector2(0, 0);
-		var maxPos = new Vector2(0, 0);
+	function CardScreen(manager) {
+		var cardManager = new CardManager("cards/cards.json", 85, 170, 150);
+		var translation = new Vector2(0, 0);
+		var cardsIcon, iconHovered, startButton;
+		var iconPos = new Vector2(canvas.width - 175, 25);
+		var startButtonPos = new Vector2((canvas.width - 200) / 2, canvas.height - 125);
 		
 		/**
 		 * Loads the content
 		 */
 		this.loadContent = function() {
+			camera.reset();
 			
+			cardsIcon = new GameImage("images/cards/cardsIcon.png", 100, 100);
+			startButton = new GameImage("images/startButton.png", 200, 100);
+			
+			cardManager.loadContent();
 		};
 		
 		/**
 		 * Updates the menu
 		 */
 		this.update = function() {
+			setMousePos(translation);
 			
+			iconHovered = mousePos.getX() >= iconPos.getX() && mousePos.getX() <= iconPos.getX() + cardsIcon.getWidth()
+							&& mousePos.getY() >= iconPos.getY() && mousePos.getY() <= iconPos.getY() + cardsIcon.getHeight();
+			
+			cardManager.update(mousePos, click, 3);
+			
+			if(cardManager.isPickComplete()) {
+				if(click) {
+					var startButtonHovered = mousePos.getX() >= startButtonPos.getX() &&
+																mousePos.getX() <= startButtonPos.getX() + startButton.getWidth() &&
+																mousePos.getY() >= startButtonPos.getY() &&
+																mousePos.getY() <= startButtonPos.getY() + startButton.getHeight();
+					if(startButtonHovered) {
+						manager.switchScreen(new GameScreen(manager, cardManager));
+					}
+				}
+			}
 		};
 		
 		/**
 		 * Draws the menu
 		 */
 		this.draw = function(canvas) {
-			
+			var picked = cardManager.getPickedCards().length; 
+			if(picked > 0) {
+				cardsIcon.draw(canvas, iconPos, 0);
+			}
+			if(cardManager.isPickComplete() || (iconHovered && picked > 0)) {
+				cardManager.drawPicked(canvas);
+			} else {
+				ctx.font = "50px Verdana";
+				ctx.fillText("Pick (click) a card:", 350, 100);
+				cardManager.drawBack(canvas);
+			}
+
+			if(cardManager.isPickComplete()) {
+				startButton.draw(canvas, startButtonPos, 0);
+			}
 		};
 	}
 	
 	/**
 	 * A GameScreen contains all of the gameplay
 	 */
-	function GameScreen(manager) {
+	function GameScreen(manager, cardManager) {
 		var tileWidth = 60;
 		var tileHeight = 90;
 		var tileManager = new TileManager(tileWidth, tileHeight);
@@ -654,12 +694,14 @@ function ScreenManager(canvas) {
 		var speed = 15;
 		var minPos, maxPos;
 		
-		var background;
 		var origin = new Vector2(0, 0);
 		var timer = new Timer(100);
-		var timerBg;
 		var timeLimit1 = 30;
 		var timeLimit2 = 60;
+		var background, timerBg, submitButton, submitPos;
+		
+		var cardsIcon, iconHovered;
+		var iconPos = new Vector2(canvas.width - 175, 25);
 		
 		/**
 		 * Loads the content
@@ -670,8 +712,10 @@ function ScreenManager(canvas) {
 			minPos = new Vector2(0, 0);
 			maxPos = tileManager.getMaxPos();
 			
-			background = new GameImage("images/", "gameBg", tileManager.getMaxPos().getX(), tileManager.getMaxPos().getY());
-			timerBg = new GameImage("images/", "timerZone", 200, 75);
+			background = new GameImage("images/gameBg.png", tileManager.getMaxPos().getX(), tileManager.getMaxPos().getY());
+			timerBg = new GameImage("images/timerZone.png", 200, 75);
+			submitButton = new GameImage("images/submitButton.png", 200, 50);
+			cardsIcon = new GameImage("images/cards/cardsIcon.png", 100, 100);
 			
 			handZone.loadContent();
 			
@@ -682,8 +726,11 @@ function ScreenManager(canvas) {
 		 * Updates the game logic
 		 */
 		this.update = function() {
-			tileManager.update(mousePos);
-			
+			if(timer.getTime() >= timeLimit2) {
+				timer.stop();
+				manager.switchScreen(new EndScreen(manager, handZone.getTiles(), timer.toString(), cardManager));
+				return;
+			}
 			// Check key input
 			if(map[37]) {
 				camera.updateTranslation(new Vector2(-speed, 0), minPos, maxPos);
@@ -697,22 +744,44 @@ function ScreenManager(canvas) {
 			if(map[40]) {
 				camera.updateTranslation(new Vector2(0, speed), minPos, maxPos);
 			}
-			setMousePos(camera.getTranslation());
+			var translation = camera.getTranslation();
+			setMousePos(translation);
 			
-			// Handzone (check clicked tiles)
-			if(click) {
-				var hovered = tileManager.findHovered();
-				
-				if(hovered) {
-					if(!hovered.getPicked()) {
-						handZone.pushTile(hovered);
+			// Update handZone
+			var zonePos = new Vector2(translation.getX() + handZone.getMargin(),
+										translation.getY() + canvas.height - handZone.getHeight());
+			handZone.update(mousePos, click, zonePos);
+			
+			submitPos = new Vector2(translation.getX() + (canvas.width - submitButton.getWidth()) / 2,
+										translation.getY() + canvas.height - 100 - submitButton.getHeight())
+			var submitHover = mousePos.getX() >= submitPos.getX() &&  mousePos.getX() <= submitPos.getX() + submitButton.getWidth()
+								&& mousePos.getY() >= submitPos.getY() && mousePos.getY() <= submitPos.getY() + submitButton.getHeight();
+			
+			// If not on handZone
+			if(mousePos.getX() < zonePos.getX() || mousePos.getX() > zonePos.getX() + handZone.getWidth()
+					|| mousePos.getY() < zonePos.getY() || mousePos.getY() > zonePos.getY() + handZone.getHeight()) {
+				if(click) {
+					// If hand completed and submitted, switch screens, end function
+					if(handZone.isFull() && submitHover) {
+						timer.stop();
+						manager.switchScreen(new EndScreen(manager, handZone.getTiles(), timer.getTime(), cardManager));
+						return;
+					}
+					
+					var hovered = tileManager.findHovered();
+					
+					if(hovered) {
+						if(!hovered.getPicked()) {
+							handZone.pushTile(hovered);
+						}
 					}
 				}
+				tileManager.update(mousePos);
 			}
 			
-			var zonePos = new Vector2(camera.getTranslation().getX() + handZone.getMargin(),
-					camera.getTranslation().getY() + canvas.height - handZone.getHeight());
-			handZone.update(mousePos, click, zonePos);
+			iconPos = translation.add(new Vector2(canvas.width - 175, 25));
+			iconHovered = mousePos.getX() >= iconPos.getX() && mousePos.getX() <= iconPos.getX() + cardsIcon.getWidth()
+							&& mousePos.getY() >= iconPos.getY() && mousePos.getY() <= iconPos.getY() + cardsIcon.getHeight();
 		};
 		
 		/**
@@ -720,6 +789,8 @@ function ScreenManager(canvas) {
 		 * @param canvas {Object} the canvas where the objects are drawn
 		 */
 		this.draw = function(canvas) {
+			var translation = camera.getTranslation();
+			
 			// Draw the background
 			background.draw(canvas, origin, 0);
 			
@@ -728,16 +799,24 @@ function ScreenManager(canvas) {
 			
 			// Draw hand zone
 			handZone.draw(canvas, mousePos);
-			
-			// Draw timer
-			var translation = camera.getTranslation();
-			
+			if(handZone.isFull()) {
+				// TODO: Draw submit button
+				submitButton.draw(canvas, submitPos, 0);
+			}
+
+			// Draw timer		
 			timerBg.draw(canvas, new Vector2(translation.getX() + 450, translation.getY() - 1), 0);
 			
 			var str = timer.toString();
 			ctx.font = "50px Verdana";
 			ctx.fillText(str, translation.getX() + 510 - (str.length - 3) * 17,  translation.getY() + 50);
 			// console.log(timer.toString()); // debug
+			
+			// Icon & Cards
+			cardsIcon.draw(canvas, iconPos, 0);
+			if(iconHovered) {
+				cardManager.drawPicked(canvas, translation);
+			}
 		};
 		
 		/**
@@ -747,6 +826,44 @@ function ScreenManager(canvas) {
 		function reset() {
 			camera.reset();
 		}
+	}
+	
+	function EndScreen(manager, tiles, time, cardManager) {
+		var ngButton;
+		var buttonPos = new Vector2((canvas.width - 200) / 2, canvas.height - 125);
+		
+		this.loadContent = function() {
+			ngButton = new GameImage("images/ngButton.png", 200, 100);
+			
+			for(var i = 0; i < tiles.length; i++) {
+				tiles[i].setRotation(0);
+				tiles[i].setPosition(new Vector2(35 + i * 75, 40));
+				tiles[i].setPicked(false);
+			}
+		};
+		
+		this.update = function() {
+			setMousePos(new Vector2(0, 0));
+			
+			if(click) {
+				if(mousePos.getX() >= buttonPos.getX() && mousePos.getX() <= buttonPos.getX() + ngButton.getWidth()
+						&& mousePos.getY() >= buttonPos.getY() && mousePos.getY() <= buttonPos.getY() + ngButton.getHeight()) {
+					manager.switchScreen(new CardScreen(manager));
+				}
+			}
+		};
+		
+		this.draw = function(canvas) {
+			ctx.font = "16px Verdana";
+			ctx.fillText("Time: " + time, 525, 20);
+			
+			for(var i = 0; i < tiles.length; i++) {
+				tiles[i].draw(canvas, camera);
+			}
+			
+			cardManager.drawPicked(canvas);
+			ngButton.draw(canvas, buttonPos, 0);
+		};
 	}
 }
 
@@ -760,7 +877,11 @@ function HandZone(zoneWidth, zoneHeight, margin, tileWidth, tileHeight) {
 	var tileMargin = (zoneWidth - handSize * (tileWidth + tileSpace)) / 2;
 	
 	this.loadContent = function() {
-		img = new GameImage("images/", "handZone", zoneWidth, zoneHeight);
+		img = new GameImage("images/handZone.png", zoneWidth, zoneHeight);
+	};
+	
+	this.getTiles = function() {
+		return tiles;
 	};
 	
 	this.getHeight = function() {
@@ -773,6 +894,10 @@ function HandZone(zoneWidth, zoneHeight, margin, tileWidth, tileHeight) {
 	
 	this.getMargin = function() {
 		return margin;
+	};
+	
+	this.isFull = function() {
+		return tiles.length == handSize;
 	};
 	
 	this.pushTile = function(tile) {
@@ -824,6 +949,183 @@ function HandZone(zoneWidth, zoneHeight, margin, tileWidth, tileHeight) {
 		
 		return mousePos.getX() >= tilePos.getX() && mousePos.getX() <= tilePos.getX() + tileWidth
 				&& mousePos.getY() >= tilePos.getY() && mousePos.getY() <= tilePos.getY() + tileHeight;
+	}
+}
+
+function CardManager(path, space, startX, startY) {
+	var cards = [];
+	var pickedCards = [];
+	var waitingCards = [];
+	var pickComplete = false;
+	var loaded = false;
+	var animating = false;
+	var folder = "cards/";
+	var cardBack;
+	var maxCardCount = 3;
+	
+	this.loadContent = function() {
+		$.get(path, function(data){
+			loadCards(data);
+		}, "json")
+		.fail(function(a, b, c){
+			displayError("Invalid file: " + path);
+		});
+		
+		cardBack = new GameImage("images/cards/cardBack.png", 200, 300);
+	};
+	
+	this.finishedLoading = function() {
+		return loaded && cards.length > 0 && cards.every(function(c){
+			return c.isLoaded();
+		});
+	};
+	
+	this.update = function(mousePos, click, count) {
+		if(this.finishedLoading()) {
+			while(waitingCards.length < count) {
+				waitingCards.push(this.getRandomCard());
+			}
+			if(click) {
+				for(var i = 0; i < waitingCards.length; i++) {
+					var cardPos = new Vector2(startX + (cardBack.getWidth() + space) * i, startY);
+					var mouseOn = mousePos.getX() >= cardPos.getX() && mousePos.getX() <= cardPos.getX() + waitingCards[i].getWidth()
+									&& mousePos.getY() >= cardPos.getY() && mousePos.getY() <= cardPos.getY() + waitingCards[i].getHeight();
+
+					if(mouseOn && !pickComplete) {
+						var temp = waitingCards.splice(i, 1)[0];
+						pickedCards.push(temp);
+						pickComplete = pickedCards.length == maxCardCount;
+						return;
+					}
+				}
+			}
+		}
+	};
+	
+	this.isPickComplete = function() {
+		return pickComplete;
+	}
+	
+	this.getRandomCard = function() {
+		return randomArrayValue(cards);
+	};
+	
+	this.drawPicked = function(canvas, tl) {
+		var translation = new Vector2(0, 0);
+		if(tl) translation = tl;
+		
+		for(var i = 0; i < pickedCards.length; i++) {
+			var cardPos = translation.add(new Vector2(startX + (cardBack.getWidth() + space) * i, startY));
+			pickedCards[i].draw(canvas, cardPos);
+		}
+	};
+	
+	this.drawBack = function(canvas, tl) {
+		if(this.finishedLoading()) {
+			var translation = new Vector2(0, 0);
+			if(tl) translation = tl;
+			
+			for(var i = 0; i < waitingCards.length; i++) {
+				var cardPos = translation.add(new Vector2(startX + (cardBack.getWidth() + space) * i, startY));
+				waitingCards[i].drawBack(canvas, cardPos);
+			}
+		}
+	};
+	
+	this.getPickedCards = function() {
+		return pickedCards;
+	}
+	
+	function loadCards(data) {
+		var check = false;
+		for(var property in data) {
+			if(check) {
+				console.log("Multiple lines in cards file?");
+				break;
+			}
+			if(property != "cards") {
+				console.log("Property not named cards?");
+				break;
+			}
+			var cardFiles = data[property].split(";");
+			
+			for(var i = 0; i < cardFiles.length; i++) {
+				cards.push(new Card(folder + cardFiles[i]));
+			}
+			check = true;
+		}
+		loaded = true;
+		
+		for(var i = 0; i < cards.length; i++) {
+			cards[i].loadContent();
+		}
+	}
+}
+
+function Card(path) {
+	var name, description, imagePath, value, image, fullImage, cardBase, cardBack;
+	var loaded = false;
+	var cardWidth = 200;
+	var cardHeight = 300;
+	
+	this.loadContent = function() {
+		cardBase = new GameImage("images/cards/card.png", cardWidth, cardHeight);
+		cardBack = new GameImage("images/cards/cardBack.png", cardWidth, cardHeight);
+		
+		$.get(path, function(data){
+			loadValues(data);
+		}, "json")
+		.fail(function(a, b, c){
+			console.log("Couldn't load card: " + path);
+		});
+	};
+	
+	this.getWidth = function() {
+		return cardWidth;
+	};
+	
+	this.getHeight = function() {
+		return cardHeight;
+	};
+	
+	this.draw = function(canvas, pos) {
+		if(fullImage) {
+			fullImage.draw(canvas, pos, 0)
+		} else {
+			cardBase.draw(canvas, pos, 0);
+			
+			var ctx = canvas.getContext("2d");
+			if(name) {
+				ctx.font = "12px Verdana";
+				ctx.fillText(name, pos.getX() + 15, pos.getY() + 25);
+			}
+			if(description) {
+				// TODO:
+			}
+		}
+		
+	};
+	
+	this.drawBack = function(canvas, pos) {
+		cardBack.draw(canvas, pos, 0);
+	}
+	
+	this.isLoaded = function() {
+		return loaded;
+	}
+	
+	function loadValues(data) {
+		if(data["fullImagePath"]) {
+			imagePath = data["fullImagePath"];
+			fullImage = new GameImage(imagePath, cardWidth, cardHeight);
+		} else {
+			name = data["name"];
+			description = data["description"];
+			imagePath = data["imagePath"];
+			value = data["value"];
+			image = new GameImage(imagePath, cardWidth, cardHeight);
+		}
+		loaded = true;
 	}
 }
 

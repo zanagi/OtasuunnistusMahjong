@@ -11,12 +11,16 @@ function Timer(interval) {
 		running = true;
 	};
 	
+	this.getTime = function() {
+		return time / 1000.0;
+	};
+	
 	this.stop = function() {
 		running = false;
 	};
 	
 	this.toString = function() {
-		return (time / 1000.0).toFixed(1);
+		return this.getTime().toFixed(1);
 	}
 	
 	function update() {
