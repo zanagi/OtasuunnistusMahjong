@@ -983,7 +983,11 @@ function CardManager(path, space, startX, startY) {
 	this.update = function(mousePos, click, count) {
 		if(this.finishedLoading()) {
 			while(waitingCards.length < count) {
-				waitingCards.push(this.getRandomCard());
+				var next = this.getRandomCard();
+				while(pickedCards.indexOf(next) > -1) {
+					next = this.getRandomCard();
+				}
+				waitingCards.push(next);
 			}
 			if(click) {
 				for(var i = 0; i < waitingCards.length; i++) {
