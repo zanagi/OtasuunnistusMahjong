@@ -654,8 +654,12 @@ function ScreenManager(canvas) {
 		var speed = 15;
 		var minPos, maxPos;
 		
-		var background; 
+		var background;
 		var origin = new Vector2(0, 0);
+		var timer = new Timer(100);
+		var timerBg;
+		var timeLimit1 = 30;
+		var timeLimit2 = 60;
 		
 		/**
 		 * Loads the content
@@ -667,8 +671,11 @@ function ScreenManager(canvas) {
 			maxPos = tileManager.getMaxPos();
 			
 			background = new GameImage("images/", "gameBg", tileManager.getMaxPos().getX(), tileManager.getMaxPos().getY());
+			timerBg = new GameImage("images/", "timerZone", 200, 75);
 			
 			handZone.loadContent();
+			
+			timer.start();
 		};
 		
 		/**
@@ -721,7 +728,17 @@ function ScreenManager(canvas) {
 			
 			// Draw hand zone
 			handZone.draw(canvas, mousePos);
-		}
+			
+			// Draw timer
+			var translation = camera.getTranslation();
+			
+			timerBg.draw(canvas, new Vector2(translation.getX() + 450, translation.getY() - 1), 0);
+			
+			var str = timer.toString();
+			ctx.font = "50px Verdana";
+			ctx.fillText(str, translation.getX() + 510 - (str.length - 3) * 17,  translation.getY() + 50);
+			// console.log(timer.toString()); // debug
+		};
 		
 		/**
 		 * Private function:

@@ -15,6 +15,10 @@ function Timer(interval) {
 		running = false;
 	};
 	
+	this.toString = function() {
+		return (time / 1000.0).toFixed(1);
+	}
+	
 	function update() {
 		if(running) {
 			time += interval;
