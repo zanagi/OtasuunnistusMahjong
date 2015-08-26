@@ -399,9 +399,12 @@ function TileManager(tileWidth, tileHeight) {
 	
 	
 	this.findHovered = function() {
-		return tiles.find(function(t) {
-			return t.getHovered();
-		});
+		for(var i = 0; i < tiles.length; i++) {
+			if(tiles[i].getHovered()) {
+				return tiles[i];
+			}
+		}
+		return null;
 	}
 	
 	/**
